@@ -142,14 +142,11 @@ public class TicketSerialService {
 
     private ExecutorService testThread;
 
-    public void testMultipleWindow() throws IOException {
+    public void testMultipleWindow() {
         String[][] pathList = {
                 {"1", "A"},
-                {"1", "B"},
-                {"2", "A"},
                 {"2", "B"},
-                {"3", "A"},
-                {"3", "B"}};
+                {"3", "C"}};
 
         testThread = Executors.newFixedThreadPool(pathList.length);
         for (int i = 0; i < pathList.length; i++) {
@@ -158,14 +155,16 @@ public class TicketSerialService {
 
     }
 
-    public void testSingleWindow() {
-        String[] path = {"10", "A"};
-        logger.debug("单窗口 6个");
+    @Value("${officeno}")
+    private String officeNo;
+    @Value("${windowno}")
+    private String windowNo;
 
-        testThread = Executors.newFixedThreadPool(6);
-        for (int i = 0; i < 10; i++) {
-            testThread.execute(new FetchDataTest(path, (i++)));
-        }
+    public void testSingleWindow() {
+        String[] path = {officeNo, windowNo};
+
+        testThread = Executors.newFixedThreadPool(1);
+        testThread.execute(new FetchDataTest(path, 1));
 
     }
 
@@ -189,9 +188,9 @@ public class TicketSerialService {
                     String ticketSerial = getTicketSerial(path[0], path[1]);
                     logger.debug("\n----------------------\n{}/{}/{} - [{}] {}", params.getPathPrefixed(), path[0],
                             path[1], ticketSerial, i == -1 ? "" : "- " + i);
-                    Thread.sleep(100);
+                    Thread.sleep(10);
                 } catch (Exception e) {
-                    logger.error("获取指定窗口下当日累计数失败！", e);
+                    logger.error("Get Ticket Error!", e.getMessage());
                     e.printStackTrace();
                     close();
                 }
