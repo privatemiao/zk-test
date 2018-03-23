@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -33,11 +32,8 @@ public class TicketSerialService {
     @Autowired
     private ZKService zkService;
 
-    @Autowired
-    private TicketNoDAO ticketNoDAO;
-
     @PostConstruct
-    protected void init() throws IOException {
+    protected void init() {
         params = zkService.getParams();
 
 //        healthCheck();
@@ -87,7 +83,6 @@ public class TicketSerialService {
         serial = getWindowCache(path).getSerial();
         String result = serial == null ? null : String.format(params.getSerialFormat(), serial);
         logger.debug("{}/{}/{} Serial: {}", params.getPathPrefixed(), officeNo, windowNo, result);
-        ticketNoDAO.save(new TicketNo(String.format("%s/%s/%s", officeNo, windowNo, result)));
         return result;
     }
 
@@ -188,7 +183,7 @@ public class TicketSerialService {
                     String ticketSerial = getTicketSerial(path[0], path[1]);
                     logger.debug("\n----------------------\n{}/{}/{} - [{}] {}", params.getPathPrefixed(), path[0],
                             path[1], ticketSerial, i == -1 ? "" : "- " + i);
-                    Thread.sleep(10);
+                    Thread.sleep(1000);
                 } catch (Exception e) {
                     logger.error("Get Ticket Error!", e.getMessage());
                     e.printStackTrace();
