@@ -8,7 +8,6 @@ import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 public class TicketSerialCache {
 	protected static final Logger logger = LoggerFactory.getLogger(TicketSerialCache.class);
 
@@ -18,7 +17,7 @@ public class TicketSerialCache {
 
 	private ZKParams params;
 
-	public TicketSerialCache(CuratorFramework client, String path,  ZKParams params) {
+	public TicketSerialCache(CuratorFramework client, String path, ZKParams params) {
 		this.path = path;
 		this.params = params;
 		this.counter = new DistributedAtomicInteger(client, path, new ExponentialBackoffRetry(params.getTimeout(), 3));
@@ -26,16 +25,20 @@ public class TicketSerialCache {
 
 	public synchronized Integer getSerial() throws Exception {
 		AtomicValue<Integer> increment = counter.increment();
+		if (!increment.succeeded()) {
+			logger.debug("Atomic increment failure, current value is {}.", increment.postValue());
+			return null;
+		}
 		Integer postValue = increment.postValue();
-		if (checkPostValue(postValue)){
+		if (checkPostValue(postValue)) {
 			return postValue;
-		}else{
+		} else {
 			return getSerial();
 		}
 	}
 
 	private boolean checkPostValue(Integer postValue) throws Exception {
-		if (String.valueOf(postValue).length() > params.getFixedLength() || isNextDay()){
+		if (String.valueOf(postValue).length() > params.getFixedLength() || isNextDay()) {
 			counter.forceSet(0);
 			return false;
 		}
@@ -46,12 +49,12 @@ public class TicketSerialCache {
 
 	private boolean isNextDay() {
 		DateTime currentTime = new DateTime();
-		if (lastTime == null){
+		if (lastTime == null) {
 			lastTime = currentTime;
 			return false;
 		}
 
-		if (lastTime.getDayOfMonth() != currentTime.getDayOfMonth()){
+		if (lastTime.getDayOfMonth() != currentTime.getDayOfMonth()) {
 			lastTime = currentTime;
 			return true;
 		}
