@@ -13,7 +13,7 @@ public class ZKParams {
 	private String hostPort = "10.100.103.13:2181";
 	private int timeout = 5000;
 	private int fixedLength = 7;
-	private String serialFormat = "%07d";
+	private String serialFormat = "9%06d";
 	private String pathPrefixed = "/ticket-serial";
 	private String ticketpath = "/ticket-core-master";
 	private int cache = 10;

@@ -26,7 +26,7 @@ public class TicketSerialCache {
 	public synchronized Integer getSerial() throws Exception {
 		AtomicValue<Integer> increment = counter.increment();
 		if (!increment.succeeded()) {
-			logger.debug("Atomic increment failure, current value is {}.", increment.postValue());
+			logger.debug("Atomic increment failure.");
 			return null;
 		}
 		Integer postValue = increment.postValue();

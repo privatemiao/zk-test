@@ -22,7 +22,7 @@ public class TicketSerialService {
 
     private ZKParams params;
 
-    private Map<String, TicketSerialCache> cache = new HashMap();
+    private Map<String, TicketSerialCache> cache = new HashMap<>();
 
     private ExecutorService healthCheckThread;
 
