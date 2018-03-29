@@ -19,62 +19,72 @@ public class TicketSerialCache {
 	private ZKParams params;
 
 	private CuratorFramework client;
-	
+
 	public TicketSerialCache(CuratorFramework client, String path, ZKParams params) {
 		this.path = path;
 		this.params = params;
-		this.client=  client;
+		this.client = client;
 		this.counter = new DistributedAtomicInteger(client, path, new ExponentialBackoffRetry(params.getTimeout(), 3));
 	}
 
-	public synchronized Integer getSerial() throws Exception {
-		AtomicValue<Integer> increment = counter.increment();
-		if (!increment.succeeded()) {
-			logger.debug("Atomic increment failure.");
+	/**
+	 * 
+	 * @return null: caller should call back one more time.
+	 * @throws Exception
+	 */
+	public Integer getSerial() throws Exception {
+		// 检查日期，每天重置
+		if (isNextDay()) {
+			logger.debug("\r\nNext day check not pass:");
+			resetPath();
 			return null;
 		}
-		Integer postValue = increment.postValue();
-		if (checkPostValue(postValue)) {
-			return postValue;
-		} else {
-			return getSerial();
+		
+		AtomicValue<Integer> increment = counter.increment();
+		if (!increment.succeeded()) {
+			logger.debug("\r\nAtomic increment failure.");
+			return null;
 		}
+
+		Integer postValue = increment.postValue();
+		if (!validatePostValue(postValue)) {
+			logger.debug("\r\nPostValue validate not pass: ");
+			resetPath();
+			return null;
+		}
+		return postValue;
 	}
 
-	private boolean checkPostValue(Integer postValue) throws Exception {
-		if (String.valueOf(postValue).length() > params.getFixedLength() || isNextDay()) {
-			counter.forceSet(0);
+	private void resetPath() throws Exception {
+		logger.debug("\r\n~~~~~~~~~~~~~~~~~~~~Force Set value to 0~~~~~~~~~~~~~~~~~~~~~~");
+		counter.forceSet(0);
+	}
+
+	private boolean validatePostValue(Integer postValue) {
+		if (String.valueOf(postValue).length() > params.getFixedLength() - 1) {
+			logger.debug("\r\n\tPostValue is: {} [invalid]", postValue);
 			return false;
 		}
 		return true;
 	}
 
-	private DateTime lastTime;
-
 	private boolean isNextDay() throws Exception {
 		DateTime currentTime = new DateTime();
-		if (lastTime == null) {
-			lastTime = currentTime;
-			return false;
-		}
-
-		if (lastTime.getDayOfMonth() == currentTime.getDayOfMonth()) {
-			lastTime = currentTime;
-			return false;
-		}
-
-		return checkMTime(currentTime);
-
-	}
-
-	private boolean checkMTime(DateTime currentTime) throws Exception {
 		Stat stat = this.client.checkExists().forPath(this.path);
-		if (new DateTime(stat.getMtime()).getDayOfMonth() != currentTime.getDayOfMonth()) {
-			System.out.println("BITCH");
+		if (stat == null) {
+			logger.debug("\r\nCheck next day pass, the path [{}] not create yet.", this.path);
+			return false;
+		}
+		DateTime lastTime = new DateTime(stat.getMtime());
+
+		if (!lastTime.withTimeAtStartOfDay().isEqual(currentTime.withTimeAtStartOfDay())) {
+			logger.debug("\r\n\tlastDayOnMonth: {}\tcurrentDayOfMonth: {}", lastTime.getDayOfMonth(),
+					currentTime.getDayOfMonth());
 			return true;
 		}
 		return false;
 	}
+
 	@Override
 	public String toString() {
 		return String.format("Counter of %s.", path);
