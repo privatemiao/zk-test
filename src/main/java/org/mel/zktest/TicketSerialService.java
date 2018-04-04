@@ -162,12 +162,12 @@ public class TicketSerialService {
 	public void testSingleWindow() {
 		String[] path = { officeNo, windowNo };
 
-		testThread = Executors.newFixedThreadPool(4);
+		testThread = Executors.newFixedThreadPool(1);
 		
 		testThread.execute(new FetchDataTest(path, 1));
-		testThread.execute(new FetchDataTest(path, 2));
-		testThread.execute(new FetchDataTest(path, 3));
-		testThread.execute(new FetchDataTest(path, 4));
+//		testThread.execute(new FetchDataTest(path, 2));
+//		testThread.execute(new FetchDataTest(path, 3));
+//		testThread.execute(new FetchDataTest(path, 4));
 
 	}
 
