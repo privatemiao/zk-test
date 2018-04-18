@@ -2,7 +2,7 @@ package org.mel.zktest;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.atomic.AtomicValue;
-import org.apache.curator.framework.recipes.atomic.DistributedAtomicInteger;
+import org.apache.curator.framework.recipes.atomic.DistributedAtomicLong;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,16 +10,13 @@ import org.slf4j.LoggerFactory;
 public class TicketSerialCache {
 	protected static final Logger logger = LoggerFactory.getLogger(TicketSerialCache.class);
 
-	private DistributedAtomicInteger counter = null;
+	private DistributedAtomicLong counter = null;
 
 	private String path = null;
 
-	private ZKParams params;
-
 	public TicketSerialCache(CuratorFramework client, String path, ZKParams params) {
 		this.path = path;
-		this.params = params;
-		this.counter = new DistributedAtomicInteger(client, path, new ExponentialBackoffRetry(params.getTimeout(), 3));
+		this.counter = new DistributedAtomicLong(client, path, new ExponentialBackoffRetry(params.getTimeout(), 3));
 	}
 
 	/**
@@ -27,24 +24,15 @@ public class TicketSerialCache {
 	 * @return null: caller should call back one more time.
 	 * @throws Exception
 	 */
-	public Integer getSerial() throws Exception {
-		AtomicValue<Integer> increment = counter.increment();
+	public Long getSerial() throws Exception {
+		AtomicValue<Long> increment = counter.increment();
 		if (!increment.succeeded()) {
-			logger.debug("\r\nAtomic increment failure, will try one more time in 200 mllis.");
+			logger.debug("\r\nAtomic increment failure.");
 			return null;
 		}
 
-		Integer postValue = increment.postValue();
-		validatePostValue(postValue);
+		Long postValue = increment.postValue();
 		return postValue;
-	}
-
-	private void validatePostValue(Integer postValue) {
-		if (String.valueOf(postValue).length() > params.getFixedLength() - 1) {
-			logger.debug("\r\n\tPostValue is Sold out: {} [invalid]", postValue);
-			throw new RuntimeException("Ticket Sold out.");
-		}
-
 	}
 
 	@Override

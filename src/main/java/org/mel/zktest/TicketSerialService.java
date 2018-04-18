@@ -31,11 +31,14 @@ public class TicketSerialService {
 
 	@Autowired
 	private ZKService zkService;
+	
+	private Long mod;
 
 	@PostConstruct
 	protected void init() {
 		params = zkService.getParams();
-
+		mod = Long.parseLong(1 + String.format("%0" + (params.getFixedLength() - 1) + "d", 0));
+		logger.debug("mod: ", mod);
 		// healthCheck();
 		if (single) {
 			testSingleWindow();
@@ -81,15 +84,20 @@ public class TicketSerialService {
 			throw new IllegalArgumentException("Parameters error");
 		}
 		String path = StringUtils.join(Arrays.asList(params.getPathPrefixed(), officeNo, windowNo), '/');
-		Integer serial = null;
-		serial = getWindowCache(path).getSerial();
-		if (serial == null) {
-			logger.debug("\r\n\r\n\r\n\r\n\r\nGetTicketSerial Failure, will try again in 200 millis.");
-			Thread.sleep(200);
+		Long serial = null;
+		try {
 			serial = getWindowCache(path).getSerial();
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
 		}
-		String result = serial == null ? null : String.format(params.getSerialFormat(), serial);
-		logger.debug("{}/{}/{} Serial: {}", params.getPathPrefixed(), officeNo, windowNo, result);
+		
+		if (serial == null) {
+			return null;
+		}
+		Long truncatedValue = serial % mod;
+		String result = String.format(params.getSerialFormat(), truncatedValue);
+		logger.debug("\r\nTicketSerialService\t{}/{}/{} Serial: {}\t Origin={}, Mod={}, truncatedValue={}", params.getPathPrefixed(), officeNo, windowNo, result, serial, mod, truncatedValue);
 		return result;
 	}
 
@@ -200,5 +208,15 @@ public class TicketSerialService {
 			}
 		}
 
+	}
+	
+	public static void main(String[] args)  {
+		int fixed = 7;
+		Long num = 123456789L;
+		Long mod = Long.parseLong(1 + String.format("%0" + (fixed - 1) + "d", 0));
+		System.out.println("mode: " + mod);
+		System.out.println(num % mod);
+		
+		
 	}
 }
