@@ -62,7 +62,7 @@ public class ZKService {
         if (StringUtils.isNotBlank(path)) {
             params.setPathPrefixed(path);
         }
-        params.setSerialFormat(new StringBuilder().append("%0").append(params.getFixedLength()).append("d").toString());
+        params.setSerialFormat(new StringBuilder().append("9%0").append(params.getFixedLength() - 1).append("d").toString());
         params.setTimeout(Integer.parseInt(timeout));
         params.setCache(Integer.parseInt(cache));
 //        if (StringUtils.isNotBlank(ticketpath)) {
